@@ -1,0 +1,80 @@
+import { randomUUID } from "crypto";
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import { db } from "@/lib/turso";
+import { ApiError, handleApiError, jsonSuccess } from "@/lib/http";
+import { requireRole } from "@/lib/auth";
+import { parsePagination, dataSchema } from "@/lib/validation";
+import { assertSafeIdentifier } from "@/lib/db";
+
+const createSchema = z.object({
+  data: dataSchema,
+});
+
+export async function GET(req: NextRequest) {
+  try {
+    requireRole(req, ["admin", "hospital_staff", "health_officer"]);
+
+    const { page, pageSize } = parsePagination(req.nextUrl.searchParams);
+
+    const list = await db.execute({
+      sql: "SELECT * FROM alerts ORDER BY created_at DESC LIMIT ? OFFSET ?",
+      args: [pageSize, (page - 1) * pageSize],
+    });
+
+    const count = await db.execute({
+      sql: "SELECT COUNT(*) as count FROM alerts",
+      args: [],
+    });
+
+    const total = Number((count.rows[0] as any)?.count ?? 0);
+
+    return jsonSuccess({
+      items: list.rows,
+      total,
+      page,
+      pageSize,
+    });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    requireRole(req, ["admin", "hospital_staff", "health_officer"]);
+
+    const body = createSchema.parse(await req.json());
+    const data = { ...body.data } as Record<string, unknown>;
+
+    if (Object.keys(data).length === 0) {
+      throw new ApiError(400, "No data provided");
+    }
+
+    if (!data.id) {
+      data.id = randomUUID();
+    }
+
+    Object.keys(data).forEach(assertSafeIdentifier);
+    const keys = Object.keys(data);
+    const placeholders = keys.map(() => "?").join(", ");
+
+    await db.execute({
+      sql: `INSERT INTO alerts (${keys.join(", ")}) VALUES (${placeholders})`,
+      args: keys.map((key) => data[key]),
+    });
+
+    const created = await db.execute({
+      sql: "SELECT * FROM alerts WHERE id = ?",
+      args: [data.id],
+    });
+
+    if (created.rows.length === 0) {
+      throw new ApiError(500, "Failed to create alert");
+    }
+
+    return jsonSuccess(created.rows[0], 201);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}

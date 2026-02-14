@@ -1,0 +1,54 @@
+import { randomUUID } from "crypto";
+import { z } from "zod";
+import { db } from "@/lib/turso";
+import { ApiError, handleApiError, jsonSuccess } from "@/lib/http";
+import { hashPassword, signToken, normalizeRole } from "@/lib/auth";
+
+const registerSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  full_name: z.string().min(1).optional(),
+  contact_number: z.string().min(1).optional(),
+  role: z.enum(["user", "donor"]).optional(),
+});
+
+export async function POST(req: Request) {
+  try {
+    const body = registerSchema.parse(await req.json());
+    const { email, password, full_name, contact_number } = body;
+    const role = normalizeRole(body.role ?? "user");
+
+    const existing = await db.execute({
+      sql: "SELECT * FROM users WHERE email = ?",
+      args: [email],
+    });
+
+    if (existing.rows.length > 0) {
+      throw new ApiError(409, "Email already registered");
+    }
+
+    const id = randomUUID();
+    const password_hash = await hashPassword(password);
+    const created_at = new Date().toISOString();
+
+    await db.execute({
+      sql: "INSERT INTO users (id, email, password_hash, role, full_name, contact_number, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      args: [id, email, password_hash, role, full_name ?? null, contact_number ?? null, created_at],
+    });
+
+    const token = signToken({ id, role });
+
+    return jsonSuccess({
+      token,
+      user: {
+        id,
+        email,
+        role,
+        full_name,
+        contact_number,
+      },
+    }, 201);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
