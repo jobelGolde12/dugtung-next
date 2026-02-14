@@ -20,10 +20,7 @@ export async function GET(req: NextRequest) {
       throw new ApiError(403, "Forbidden");
     }
 
-    const result = await db.execute({
-      sql: "SELECT * FROM users WHERE id = ?",
-      args: [userId],
-    });
+    const result = await db.execute("SELECT * FROM users WHERE id = ?", [userId]);
 
     if (result.rows.length === 0) {
       throw new ApiError(404, "User not found");
@@ -76,15 +73,9 @@ export async function PATCH(req: NextRequest) {
     const setSql = keys.map((key) => `${key} = ?`).join(", ");
     const values = keys.map((key) => data[key]) as any[];
 
-    await db.execute({
-      sql: `UPDATE users SET ${setSql} WHERE id = ?`,
-      args: [...values, userId],
-    });
+    await db.execute(`UPDATE users SET ${setSql} WHERE id = ?`, [...values, userId]);
 
-    const updated = await db.execute({
-      sql: "SELECT * FROM users WHERE id = ?",
-      args: [userId],
-    });
+    const updated = await db.execute("SELECT * FROM users WHERE id = ?", [userId]);
 
     const user = updated.rows[0] as Record<string, unknown> | undefined;
     if (!user) {
