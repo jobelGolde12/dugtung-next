@@ -86,8 +86,11 @@ export async function POST(req: Request) {
       user = existing.rows[0] as Record<string, unknown> | undefined;
 
       if (!user) {
-        const id = randomUUID();
-        const created_at = new Date().toISOString();
+        const result = await db.execute("SELECT MAX(CAST(id AS INTEGER)) as max_id FROM users");
+        const maxId = Number((result.rows[0] as any)?.max_id ?? 0);
+        const id = maxId + 1;
+        const now = new Date();
+        const created_at = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
         const role = "donor";
 
         console.log("INSERT USER - ARG TYPES:", {
@@ -131,7 +134,7 @@ export async function POST(req: Request) {
 
     const role = normalizeRole(user.role ?? "donor");
     const token = signToken({ id: String(user.id), role });
-    const { password_hash, ...safeUser } = user;
+    const { password_hash: _password_hash, ...safeUser } = user;
 
     return jsonSuccess({ 
       access_token: token,

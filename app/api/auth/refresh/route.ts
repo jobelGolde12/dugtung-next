@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const user = result.rows[0] as Record<string, unknown>;
     const role = normalizeRole(user.role ?? auth.role);
     const token = signToken({ id: String(user.id), role });
-    const { password_hash, ...safeUser } = user;
+    const { password_hash: _password_hash, ...safeUser } = user;
 
     return jsonSuccess({ 
       access_token: token,

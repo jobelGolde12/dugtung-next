@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     }
 
     const user = result.rows[0] as Record<string, unknown>;
-    const { password_hash, ...safeUser } = user;
+    const { password_hash: _password_hash, ...safeUser } = user;
     return jsonSuccess(safeUser);
   } catch (error) {
     return handleApiError(error);
