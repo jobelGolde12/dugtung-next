@@ -53,7 +53,12 @@ export async function POST(req: Request) {
         const token = signToken({ id: String(user.id), role });
 
         const { password_hash, ...safeUser } = user;
-        return jsonSuccess({ token, user: safeUser });
+        return jsonSuccess({ 
+          access_token: token,
+          refresh_token: "", // No refresh token in this implementation
+          token_type: "bearer",
+          user: safeUser 
+        });
       } catch (error) {
         console.error("SQL ERROR in email login:", error);
         console.log("SQL QUERY: SELECT * FROM users WHERE email = ?", [emailString]);
@@ -128,7 +133,12 @@ export async function POST(req: Request) {
     const token = signToken({ id: String(user.id), role });
     const { password_hash, ...safeUser } = user;
 
-    return jsonSuccess({ token, user: safeUser });
+    return jsonSuccess({ 
+      access_token: token,
+      refresh_token: "", // No refresh token in this implementation
+      token_type: "bearer",
+      user: safeUser 
+    });
   } catch (error) {
     return handleApiError(error);
   }

@@ -18,7 +18,12 @@ export async function POST(req: NextRequest) {
     const token = signToken({ id: String(user.id), role });
     const { password_hash, ...safeUser } = user;
 
-    return jsonSuccess({ token, user: safeUser });
+    return jsonSuccess({ 
+      access_token: token,
+      refresh_token: "", // No refresh token in this implementation
+      token_type: "bearer",
+      user: safeUser 
+    });
   } catch (error) {
     return handleApiError(error);
   }

@@ -33,7 +33,9 @@ export async function POST(req: Request) {
     const token = signToken({ id, role });
 
     return jsonSuccess({
-      token,
+      access_token: token,
+      refresh_token: "", // No refresh token in this implementation
+      token_type: "bearer",
       user: {
         id,
         email,
