@@ -28,7 +28,8 @@ export async function POST(req: Request) {
     const password_hash = await hashPassword(password);
     const created_at = new Date().toISOString();
 
-    await db.execute("INSERT INTO users (id, email, password_hash, role, full_name, contact_number, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)", [id, email, password_hash, role, full_name ?? null, contact_number ?? null, created_at]);
+    // Only insert columns that exist in the users table (excluding password_hash if it doesn't exist)
+    await db.execute("INSERT INTO users (id, email, role, full_name, contact_number, created_at) VALUES (?, ?, ?, ?, ?, ?)", [id, email, role, full_name ?? null, contact_number ?? null, created_at]);
 
     const token = signToken({ id, role });
 

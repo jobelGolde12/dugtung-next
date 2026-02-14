@@ -99,12 +99,12 @@ export async function POST(req: Request) {
         });
 
         try {
-          // Insert with potential NULL values for optional fields to prevent type mismatch
-          await db.execute("INSERT INTO users (id, full_name, contact_number, role, created_at, email, password_hash) VALUES (?, ?, ?, ?, ?, ?, ?)", [id, fullNameString, contactNumberString, role, created_at, null, null]);
+          // Insert with only columns that exist in the users table
+          await db.execute("INSERT INTO users (id, full_name, contact_number, role, created_at) VALUES (?, ?, ?, ?, ?)", [id, fullNameString, contactNumberString, role, created_at]);
         } catch (error) {
           console.error("SQL ERROR in user creation:", error);
-          console.log("SQL QUERY: INSERT INTO users (id, full_name, contact_number, role, created_at, email, password_hash) VALUES (?, ?, ?, ?, ?, ?, ?)");
-          console.log("SQL ARGS:", [id, fullNameString, contactNumberString, role, created_at, null, null]);
+          console.log("SQL QUERY: INSERT INTO users (id, full_name, contact_number, role, created_at) VALUES (?, ?, ?, ?, ?)");
+          console.log("SQL ARGS:", [id, fullNameString, contactNumberString, role, created_at]);
           throw error;
         }
 
