@@ -49,14 +49,15 @@ export async function GET(req: NextRequest) {
 
     const whereSql = `WHERE ${whereParts.join(" AND ")}`;
 
+    const listArgs = [...args, pageSize, (page - 1) * pageSize] as any[];
     const list = await db.execute({
       sql: `SELECT * FROM donors ${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-      args: [...args, pageSize, (page - 1) * pageSize],
+      args: listArgs,
     });
 
     const count = await db.execute({
       sql: `SELECT COUNT(*) as count FROM donors ${whereSql}`,
-      args,
+      args: args as any[],
     });
 
     const total = Number((count.rows[0] as any)?.count ?? 0);
@@ -95,14 +96,16 @@ export async function POST(req: NextRequest) {
     const keys = Object.keys(data);
     const placeholders = keys.map(() => "?").join(", ");
 
+    const values = keys.map((key) => data[key]) as any[];
     await db.execute({
       sql: `INSERT INTO donors (${keys.join(", ")}) VALUES (${placeholders})`,
-      args: keys.map((key) => data[key]),
+      args: values,
     });
 
+    const createdId = String(data.id);
     const created = await db.execute({
       sql: "SELECT * FROM donors WHERE id = ?",
-      args: [data.id],
+      args: [createdId],
     });
 
     if (created.rows.length === 0) {

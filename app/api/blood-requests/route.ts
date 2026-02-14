@@ -48,14 +48,16 @@ export async function POST(req: NextRequest) {
     const keys = Object.keys(data);
     const placeholders = keys.map(() => "?").join(", ");
 
+    const values = keys.map((key) => data[key]) as any[];
     await db.execute({
       sql: `INSERT INTO blood_requests (${keys.join(", ")}) VALUES (${placeholders})`,
-      args: keys.map((key) => data[key]),
+      args: values,
     });
 
+    const createdId = String(data.id);
     const created = await db.execute({
       sql: "SELECT * FROM blood_requests WHERE id = ?",
-      args: [data.id],
+      args: [createdId],
     });
 
     if (created.rows.length === 0) {

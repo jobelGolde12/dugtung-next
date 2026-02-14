@@ -4,10 +4,14 @@ import { ApiError, handleApiError, jsonSuccess } from "@/lib/http";
 import { isPrivilegedRole, requireAuth } from "@/lib/auth";
 import { parseIdParam } from "@/lib/validation";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const auth = requireAuth(req);
-    const id = parseIdParam(params);
+    const resolvedParams = await params;
+    const id = parseIdParam(resolvedParams);
 
     const result = await db.execute({
       sql: "SELECT * FROM notifications WHERE id = ?",
@@ -29,10 +33,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const auth = requireAuth(req);
-    const id = parseIdParam(params);
+    const resolvedParams = await params;
+    const id = parseIdParam(resolvedParams);
 
     if (!isPrivilegedRole(auth.role)) {
       const existing = await db.execute({

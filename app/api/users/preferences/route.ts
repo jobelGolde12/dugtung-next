@@ -50,7 +50,7 @@ export async function PUT(req: NextRequest) {
 
     keys.forEach(assertSafeIdentifier);
     const setSql = keys.map((key) => `${key} = ?`).join(", ");
-    const values = keys.map((key) => data[key]);
+    const values = keys.map((key) => data[key]) as any[];
 
     await db.execute({
       sql: "INSERT OR IGNORE INTO user_preferences (user_id) VALUES (?)",

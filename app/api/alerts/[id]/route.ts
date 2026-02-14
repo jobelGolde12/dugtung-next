@@ -4,10 +4,14 @@ import { ApiError, handleApiError, jsonSuccess } from "@/lib/http";
 import { requireRole } from "@/lib/auth";
 import { parseIdParam } from "@/lib/validation";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     requireRole(req, ["admin", "hospital_staff", "health_officer"]);
-    const id = parseIdParam(params);
+    const resolvedParams = await params;
+    const id = parseIdParam(resolvedParams);
 
     const result = await db.execute({
       sql: "SELECT * FROM alerts WHERE id = ?",

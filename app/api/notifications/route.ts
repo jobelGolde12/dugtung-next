@@ -34,20 +34,21 @@ export async function GET(req: NextRequest) {
 
     const whereSql = whereParts.length ? `WHERE ${whereParts.join(" AND ")}` : "";
 
+    const listArgs = [...args, pageSize, (page - 1) * pageSize] as any[];
     const list = await db.execute({
       sql: `SELECT * FROM notifications ${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-      args: [...args, pageSize, (page - 1) * pageSize],
+      args: listArgs,
     });
 
     const count = await db.execute({
       sql: `SELECT COUNT(*) as count FROM notifications ${whereSql}`,
-      args,
+      args: args as any[],
     });
 
     const baseWhereSql = baseWhereParts.length ? `WHERE ${baseWhereParts.join(" AND ")}` : "";
     const unreadCountQuery = await db.execute({
       sql: `SELECT COUNT(*) as count FROM notifications ${baseWhereSql}${baseWhereSql ? " AND" : "WHERE"} is_read = 0`,
-      args: baseArgs,
+      args: baseArgs as any[],
     });
 
     const total = Number((count.rows[0] as any)?.count ?? 0);

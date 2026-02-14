@@ -9,10 +9,14 @@ const availabilitySchema = z.object({
   availability_status: z.string().min(1),
 });
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     requireRole(req, ["admin", "hospital_staff", "health_officer"]);
-    const id = parseIdParam(params);
+    const resolvedParams = await params;
+    const id = parseIdParam(resolvedParams);
     const body = availabilitySchema.parse(await req.json());
 
     await db.execute({

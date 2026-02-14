@@ -10,10 +10,14 @@ const updateSchema = z.object({
   data: dataSchema,
 });
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     requireRole(req, ["admin", "hospital_staff", "health_officer"]);
-    const id = parseIdParam(params);
+    const resolvedParams = await params;
+    const id = parseIdParam(resolvedParams);
 
     const result = await db.execute({
       sql: "SELECT * FROM donors WHERE id = ? AND is_deleted = 0",
@@ -30,10 +34,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     requireRole(req, ["admin", "hospital_staff"]);
-    const id = parseIdParam(params);
+    const resolvedParams = await params;
+    const id = parseIdParam(resolvedParams);
     const body = updateSchema.parse(await req.json());
     const data = { ...body.data } as Record<string, unknown>;
 
@@ -50,9 +58,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     keys.forEach(assertSafeIdentifier);
     const setSql = keys.map((key) => `${key} = ?`).join(", ");
 
+    const values = keys.map((key) => data[key]) as any[];
     await db.execute({
       sql: `UPDATE donors SET ${setSql} WHERE id = ? AND is_deleted = 0`,
-      args: [...keys.map((key) => data[key]), id],
+      args: [...values, id],
     });
 
     const updated = await db.execute({
@@ -70,10 +79,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     requireRole(req, ["admin", "hospital_staff"]);
-    const id = parseIdParam(params);
+    const resolvedParams = await params;
+    const id = parseIdParam(resolvedParams);
 
     await db.execute({
       sql: "UPDATE donors SET is_deleted = 1 WHERE id = ?",

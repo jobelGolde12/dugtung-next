@@ -74,7 +74,7 @@ export async function PATCH(req: NextRequest) {
 
     keys.forEach(assertSafeIdentifier);
     const setSql = keys.map((key) => `${key} = ?`).join(", ");
-    const values = keys.map((key) => data[key]);
+    const values = keys.map((key) => data[key]) as any[];
 
     await db.execute({
       sql: `UPDATE users SET ${setSql} WHERE id = ?`,

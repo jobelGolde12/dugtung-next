@@ -13,10 +13,14 @@ const updateSchema = z.object({
   donorData: dataSchema.optional(),
 });
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     requireRole(req, ["admin", "hospital_staff", "health_officer"]);
-    const id = parseIdParam(params);
+    const resolvedParams = await params;
+    const id = parseIdParam(resolvedParams);
 
     const result = await db.execute({
       sql: "SELECT * FROM donor_registrations WHERE id = ?",
@@ -33,10 +37,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     requireRole(req, ["admin", "hospital_staff"]);
-    const id = parseIdParam(params);
+    const resolvedParams = await params;
+    const id = parseIdParam(resolvedParams);
     const body = updateSchema.parse(await req.json());
 
     if (body.status || body.data) {
@@ -50,9 +58,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       if (keys.length > 0) {
         keys.forEach(assertSafeIdentifier);
         const setSql = keys.map((key) => `${key} = ?`).join(", ");
+        const values = keys.map((key) => updateData[key]) as any[];
         await db.execute({
           sql: `UPDATE donor_registrations SET ${setSql} WHERE id = ?`,
-          args: [...keys.map((key) => updateData[key]), id],
+          args: [...values, id],
         });
       }
     }
@@ -83,9 +92,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       Object.keys(donorPayload).forEach(assertSafeIdentifier);
       const keys = Object.keys(donorPayload);
       const placeholders = keys.map(() => "?").join(", ");
+      const values = keys.map((key) => donorPayload[key]) as any[];
       await db.execute({
         sql: `INSERT INTO donors (${keys.join(", ")}) VALUES (${placeholders})`,
-        args: keys.map((key) => donorPayload[key]),
+        args: values,
       });
     }
 
@@ -104,10 +114,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     requireRole(req, ["admin"]);
-    const id = parseIdParam(params);
+    const resolvedParams = await params;
+    const id = parseIdParam(resolvedParams);
 
     await db.execute({
       sql: "DELETE FROM donor_registrations WHERE id = ?",

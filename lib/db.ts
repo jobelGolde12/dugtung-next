@@ -18,7 +18,7 @@ export function sanitizeData(data: Record<string, unknown>) {
     assertSafeIdentifier(key);
     return key;
   });
-  const values = entries.map(([, value]) => value);
+  const values = entries.map(([, value]) => value as any); // Type assertion to allow passing to db.execute
   return { keys, values };
 }
 
@@ -45,7 +45,7 @@ export function buildUpdate(
 
 export async function insertRow(table: string, data: Record<string, unknown>) {
   const { sql, values } = buildInsert(table, data);
-  await db.execute({ sql, args: values });
+  await db.execute(sql, values);
 }
 
 export async function updateRow(
@@ -55,5 +55,5 @@ export async function updateRow(
   whereValues: unknown[]
 ) {
   const { sql, values } = buildUpdate(table, data, whereSql, whereValues);
-  await db.execute({ sql, args: values });
+  await db.execute(sql, values);
 }
