@@ -18,10 +18,7 @@ export async function POST(req: Request) {
     const { email, password, full_name, contact_number } = body;
     const role = normalizeRole(body.role ?? "user");
 
-    const existing = await db.execute({
-      sql: "SELECT * FROM users WHERE email = ?",
-      args: [email],
-    });
+    const existing = await db.execute("SELECT * FROM users WHERE email = ?", [email]);
 
     if (existing.rows.length > 0) {
       throw new ApiError(409, "Email already registered");
@@ -31,10 +28,7 @@ export async function POST(req: Request) {
     const password_hash = await hashPassword(password);
     const created_at = new Date().toISOString();
 
-    await db.execute({
-      sql: "INSERT INTO users (id, email, password_hash, role, full_name, contact_number, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      args: [id, email, password_hash, role, full_name ?? null, contact_number ?? null, created_at],
-    });
+    await db.execute("INSERT INTO users (id, email, password_hash, role, full_name, contact_number, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)", [id, email, password_hash, role, full_name ?? null, contact_number ?? null, created_at]);
 
     const token = signToken({ id, role });
 

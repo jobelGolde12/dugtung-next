@@ -7,10 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const auth = requireAuth(req);
 
-    const result = await db.execute({
-      sql: "SELECT * FROM users WHERE id = ?",
-      args: [auth.id],
-    });
+    const result = await db.execute("SELECT * FROM users WHERE id = ?", [auth.id]);
 
     if (result.rows.length === 0) {
       throw new ApiError(401, "Unauthorized");

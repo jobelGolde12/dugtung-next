@@ -253,3 +253,523 @@ These are the conceptual navigation paths and their associated allowed roles:
 ---
 
 This document provides a comprehensive overview of how the application handles data persistence via Turso and how user access to various features is managed through role-based controls.
+
+
+---
+
+## 📡 API Request/Response Specifications
+
+This section documents the exact data structures expected by each API endpoint, based on the React Native app implementation.
+
+### Authentication APIs
+
+#### POST `/api/auth/login`
+**Used in**: `app/login.tsx`
+
+**Request Body**:
+```json
+{
+  "full_name": "Juan Dela Cruz",
+  "contact_number": "09123456789"
+}
+```
+
+**Expected Response**:
+```json
+{
+  "access_token": "jwt_token_here",
+  "refresh_token": "refresh_token_here",
+  "token_type": "bearer",
+  "user": {
+    "id": "1",
+    "role": "donor",
+    "name": "Juan Dela Cruz",
+    "contact_number": "09123456789",
+    "email": "optional@email.com",
+    "avatar_url": "optional_url"
+  }
+}
+```
+
+#### POST `/api/auth/register`
+**Used in**: `app/register.tsx`
+
+**Request Body**:
+```json
+{
+  "full_name": "Juan Dela Cruz",
+  "contact_number": "09123456789",
+  "email": "optional@email.com"
+}
+```
+
+**Expected Response**: Same as login response
+
+#### GET `/api/auth/me`
+**Used in**: `contexts/AuthContext.tsx`
+
+**Headers**: `Authorization: Bearer {token}`
+
+**Expected Response**:
+```json
+{
+  "user": {
+    "id": "1",
+    "role": "donor",
+    "name": "Juan Dela Cruz",
+    "contact_number": "09123456789",
+    "email": "optional@email.com",
+    "avatar_url": "optional_url"
+  }
+}
+```
+
+---
+
+### Donor APIs
+
+#### GET `/api/donors`
+**Used in**: `app/search.tsx`, `app/components/dashboard/StatsGrid.tsx`, `app/screens/dashboard/DonorManagementScreen.tsx`
+
+**Query Parameters**:
+- `bloodType` (optional): Filter by blood type (e.g., "A+", "O-")
+- `municipality` (optional): Filter by municipality
+- `availability` (optional): Filter by availability status
+- `search` (optional): Search query for name/contact/municipality
+- `page` (optional): Page number (default: 0)
+- `page_size` (optional): Items per page (default: 50)
+
+**Example**: `/api/donors?bloodType=A+&municipality=Manila&page=0&page_size=50`
+
+**Expected Response**:
+```json
+{
+  "items": [
+    {
+      "id": "1",
+      "name": "Juan Dela Cruz",
+      "age": 25,
+      "sex": "Male",
+      "bloodType": "A+",
+      "contactNumber": "09123456789",
+      "municipality": "Manila",
+      "availabilityStatus": "Available",
+      "lastDonationDate": "2024-01-15",
+      "dateRegistered": "2024-01-01T00:00:00Z",
+      "notes": "Optional notes"
+    }
+  ],
+  "total": 100,
+  "page": 0,
+  "page_size": 50
+}
+```
+
+#### GET `/api/donors/:id`
+**Used in**: `app/components/dashboard/StatsGrid.tsx`
+
+**Headers**: `Authorization: Bearer {token}`
+
+**Expected Response**:
+```json
+{
+  "donor": {
+    "id": "1",
+    "name": "Juan Dela Cruz",
+    "age": 25,
+    "sex": "Male",
+    "bloodType": "A+",
+    "contactNumber": "09123456789",
+    "municipality": "Manila",
+    "availabilityStatus": "Available",
+    "lastDonationDate": "2024-01-15",
+    "dateRegistered": "2024-01-01T00:00:00Z",
+    "notes": "Optional notes"
+  }
+}
+```
+
+#### POST `/api/donors`
+**Used in**: `app/AddDonorPage.tsx`
+
+**Headers**: `Authorization: Bearer {token}`
+
+**Request Body**:
+```json
+{
+  "name": "Juan Dela Cruz",
+  "age": 25,
+  "sex": "Male",
+  "bloodType": "A+",
+  "contactNumber": "09123456789",
+  "municipality": "Manila",
+  "availabilityStatus": "Available",
+  "lastDonationDate": "2024-01-15",
+  "notes": "Optional notes"
+}
+```
+
+**Expected Response**:
+```json
+{
+  "donor": {
+    "id": "1",
+    "name": "Juan Dela Cruz",
+    "age": 25,
+    "sex": "Male",
+    "bloodType": "A+",
+    "contactNumber": "09123456789",
+    "municipality": "Manila",
+    "availabilityStatus": "Available",
+    "lastDonationDate": "2024-01-15",
+    "dateRegistered": "2024-01-01T00:00:00Z",
+    "notes": "Optional notes"
+  }
+}
+```
+
+#### PATCH `/api/donors/:id/availability`
+**Used in**: `app/screens/dashboard/DonorManagementScreen.tsx`
+
+**Headers**: `Authorization: Bearer {token}`
+
+**Request Body**:
+```json
+{
+  "availabilityStatus": "Temporarily Unavailable"
+}
+```
+
+**Expected Response**:
+```json
+{
+  "donor": {
+    "id": "1",
+    "availabilityStatus": "Temporarily Unavailable",
+    ...
+  }
+}
+```
+
+---
+
+### Alert APIs
+
+#### POST `/api/alerts`
+**Used in**: `app/send-alerts.tsx`
+
+**Headers**: `Authorization: Bearer {token}`
+
+**Request Body**:
+```json
+{
+  "blood_type": "A+",
+  "municipality": "Manila",
+  "urgency": "high",
+  "message": "Urgent need for A+ blood donors",
+  "contact_info": "09123456789",
+  "created_by": "user_id",
+  "expires_at": "2024-12-31T23:59:59Z"
+}
+```
+
+**Expected Response**:
+```json
+{
+  "alert": {
+    "id": "1",
+    "blood_type": "A+",
+    "municipality": "Manila",
+    "urgency": "high",
+    "message": "Urgent need for A+ blood donors",
+    "contact_info": "09123456789",
+    "created_by": "user_id",
+    "created_at": "2024-01-01T00:00:00Z",
+    "expires_at": "2024-12-31T23:59:59Z",
+    "is_active": true
+  }
+}
+```
+
+---
+
+### Blood Request APIs
+
+#### GET `/api/blood-requests`
+**Used in**: `app/components/dashboard/StatsGrid.tsx`
+
+**Query Parameters**:
+- `blood_type` (optional): Filter by blood type
+- `urgency` (optional): Filter by urgency level
+- `status` (optional): Filter by status
+- `month` (optional): Filter by month (YYYY-MM format)
+- `limit` (optional): Number of items to return
+- `offset` (optional): Pagination offset
+
+**Example**: `/api/blood-requests?month=2024-01&limit=50`
+
+**Expected Response**:
+```json
+{
+  "requests": [
+    {
+      "id": "1",
+      "requester_name": "Hospital Name",
+      "blood_type": "A+",
+      "urgency": "high",
+      "location": "Manila",
+      "contact_number": "09123456789",
+      "status": "active",
+      "created_at": "2024-01-01T00:00:00Z",
+      "notes": "Optional notes"
+    }
+  ]
+}
+```
+
+---
+
+### Donation APIs
+
+#### GET `/api/donations`
+**Used in**: `app/components/dashboard/StatsGrid.tsx`
+
+**Query Parameters**:
+- `donor_id` (optional): Filter by donor ID
+- `blood_type` (optional): Filter by blood type
+- `start_date` (optional): Filter from date
+- `end_date` (optional): Filter to date
+- `limit` (optional): Number of items to return
+- `offset` (optional): Pagination offset
+
+**Expected Response**:
+```json
+{
+  "donations": [
+    {
+      "id": "1",
+      "donor_id": "1",
+      "donation_date": "2024-01-15",
+      "blood_type": "A+",
+      "quantity_ml": 450,
+      "location": "Red Cross Manila",
+      "notes": "Optional notes",
+      "created_at": "2024-01-15T00:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### Notification APIs
+
+#### GET `/api/notifications`
+**Used in**: `contexts/NotificationContext.tsx`
+
+**Query Parameters**:
+- `user_id` (optional): Filter by user ID
+- `is_read` (optional): Filter by read status (true/false)
+- `type` (optional): Filter by notification type
+- `limit` (optional): Number of items to return
+- `offset` (optional): Pagination offset
+
+**Expected Response**:
+```json
+{
+  "notifications": [
+    {
+      "id": "1",
+      "user_id": "1",
+      "title": "Blood Request Alert",
+      "message": "Urgent need for A+ blood donors in Manila",
+      "type": "blood_request",
+      "is_read": false,
+      "created_at": "2024-01-01T00:00:00Z",
+      "metadata": {}
+    }
+  ]
+}
+```
+
+#### PATCH `/api/notifications/:id/read`
+**Used in**: `contexts/NotificationContext.tsx`
+
+**Headers**: `Authorization: Bearer {token}`
+
+**Expected Response**:
+```json
+{
+  "notification": {
+    "id": "1",
+    "is_read": true,
+    ...
+  }
+}
+```
+
+#### POST `/api/notifications/mark-all-read`
+**Used in**: `contexts/NotificationContext.tsx`
+
+**Headers**: `Authorization: Bearer {token}`
+
+**Request Body**:
+```json
+{
+  "userId": "1"
+}
+```
+
+**Expected Response**: `204 No Content` or `200 OK`
+
+---
+
+### Donor Registration APIs
+
+#### GET `/api/donor-registrations`
+**Used in**: `app/screens/dashboard/DonorManagementScreen.tsx`
+
+**Query Parameters**:
+- `status` (optional): Filter by status (pending/approved/rejected)
+- `municipality` (optional): Filter by municipality
+- `blood_type` (optional): Filter by blood type
+- `limit` (optional): Number of items to return
+- `offset` (optional): Pagination offset
+
+**Expected Response**:
+```json
+{
+  "registrations": [
+    {
+      "id": "1",
+      "full_name": "Juan Dela Cruz",
+      "age": 25,
+      "sex": "Male",
+      "blood_type": "A+",
+      "contact_number": "09123456789",
+      "municipality": "Manila",
+      "availability_status": "Available",
+      "status": "pending",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+#### PATCH `/api/donor-registrations/:id/status`
+**Used in**: `app/screens/dashboard/DonorManagementScreen.tsx`
+
+**Headers**: `Authorization: Bearer {token}`
+
+**Request Body**:
+```json
+{
+  "status": "approved"
+}
+```
+
+**Expected Response**:
+```json
+{
+  "registration": {
+    "id": "1",
+    "status": "approved",
+    "updated_at": "2024-01-01T00:00:00Z",
+    ...
+  }
+}
+```
+
+---
+
+### Report APIs
+
+#### GET `/api/reports`
+**Used in**: `app/screens/dashboard/ReportsScreen.tsx`
+
+**Query Parameters**:
+- `start_date` (optional): Report start date
+- `end_date` (optional): Report end date
+
+**Expected Response**:
+```json
+{
+  "totalDonors": 100,
+  "activeDonors": 80,
+  "totalDonations": 50,
+  "donationsByBloodType": {
+    "A+": 20,
+    "O+": 15,
+    "B+": 10,
+    "AB+": 5
+  },
+  "donationsByMonth": [
+    {
+      "month": "2024-01",
+      "count": 10
+    }
+  ],
+  "donorsByMunicipality": {
+    "Manila": 30,
+    "Quezon City": 25,
+    "Makati": 20
+  }
+}
+```
+
+---
+
+### User APIs
+
+#### GET `/api/users/:id`
+**Used in**: `api/auth.ts`
+
+**Headers**: `Authorization: Bearer {token}`
+
+**Expected Response**:
+```json
+{
+  "user": {
+    "id": "1",
+    "role": "donor",
+    "name": "Juan Dela Cruz",
+    "contact_number": "09123456789",
+    "email": "optional@email.com",
+    "avatar_url": "optional_url"
+  }
+}
+```
+
+---
+
+## 🔒 Authentication Requirements
+
+All API endpoints except `/api/auth/login` and `/api/auth/register` require:
+
+**Header**: `Authorization: Bearer {jwt_token}`
+
+The JWT token is obtained from the login/register response and stored securely using `expo-secure-store`.
+
+---
+
+## ⚠️ Error Response Format
+
+All API errors should follow this format:
+
+```json
+{
+  "message": "Error description",
+  "error": "Optional error code",
+  "details": "Optional additional details"
+}
+```
+
+**Common HTTP Status Codes**:
+- `200` - Success
+- `201` - Created
+- `400` - Bad Request (validation error)
+- `401` - Unauthorized (invalid/missing token)
+- `403` - Forbidden (insufficient permissions)
+- `404` - Not Found
+- `500` - Internal Server Error

@@ -23,13 +23,16 @@ export async function POST(req: Request) {
     if ("email" in body) {
       const { email, password } = body;
       
+      // Ensure email is a string to prevent type mismatch
+      const emailString = String(email);
+      
       // Log the types of the values being passed to the query
       console.log("LOGIN BY EMAIL - ARG TYPES:", {
-        email: { value: email, type: typeof email }
+        email: { value: emailString, type: typeof emailString }
       });
       
       try {
-        const result = await db.execute("SELECT * FROM users WHERE email = ?", [email]);
+        const result = await db.execute("SELECT * FROM users WHERE email = ?", [emailString]);
 
         if (result.rows.length === 0) {
           throw new ApiError(401, "Invalid credentials");
@@ -53,24 +56,28 @@ export async function POST(req: Request) {
         return jsonSuccess({ token, user: safeUser });
       } catch (error) {
         console.error("SQL ERROR in email login:", error);
-        console.log("SQL QUERY: SELECT * FROM users WHERE email = ?", [email]);
-        console.log("SQL ARGS:", [email]);
+        console.log("SQL QUERY: SELECT * FROM users WHERE email = ?", [emailString]);
+        console.log("SQL ARGS:", [emailString]);
         throw error;
       }
     }
 
     const { full_name, contact_number } = body;
-    
+
+    // Ensure types are correct to prevent type mismatch
+    const fullNameString = String(full_name);
+    const contactNumberString = String(contact_number);
+
     // Log the types of the values being passed to the query
     console.log("LOGIN BY CONTACT - ARG TYPES:", {
-      full_name: { value: full_name, type: typeof full_name },
-      contact_number: { value: contact_number, type: typeof contact_number }
+      full_name: { value: fullNameString, type: typeof fullNameString },
+      contact_number: { value: contactNumberString, type: typeof contactNumberString }
     });
-    
+
     let user: Record<string, unknown> | undefined;
 
     try {
-      const existing = await db.execute("SELECT * FROM users WHERE full_name = ? AND contact_number = ?", [full_name, contact_number]);
+      const existing = await db.execute("SELECT * FROM users WHERE full_name = ? AND contact_number = ?", [fullNameString, contactNumberString]);
       user = existing.rows[0] as Record<string, unknown> | undefined;
 
       if (!user) {
@@ -80,18 +87,18 @@ export async function POST(req: Request) {
 
         console.log("INSERT USER - ARG TYPES:", {
           id: { value: id, type: typeof id },
-          full_name: { value: full_name, type: typeof full_name },
-          contact_number: { value: contact_number, type: typeof contact_number },
+          full_name: { value: fullNameString, type: typeof fullNameString },
+          contact_number: { value: contactNumberString, type: typeof contactNumberString },
           role: { value: role, type: typeof role },
           created_at: { value: created_at, type: typeof created_at }
         });
 
         try {
-          await db.execute("INSERT INTO users (id, full_name, contact_number, role, created_at) VALUES (?, ?, ?, ?, ?)", [id, full_name, contact_number, role, created_at]);
+          await db.execute("INSERT INTO users (id, full_name, contact_number, role, created_at) VALUES (?, ?, ?, ?, ?)", [id, fullNameString, contactNumberString, role, created_at]);
         } catch (error) {
           console.error("SQL ERROR in user creation:", error);
           console.log("SQL QUERY: INSERT INTO users (id, full_name, contact_number, role, created_at) VALUES (?, ?, ?, ?, ?)");
-          console.log("SQL ARGS:", [id, full_name, contact_number, role, created_at]);
+          console.log("SQL ARGS:", [id, fullNameString, contactNumberString, role, created_at]);
           throw error;
         }
 
@@ -107,8 +114,8 @@ export async function POST(req: Request) {
       }
     } catch (error) {
       console.error("SQL ERROR in contact login:", error);
-      console.log("SQL QUERY: SELECT * FROM users WHERE full_name = ? AND contact_number = ?", [full_name, contact_number]);
-      console.log("SQL ARGS:", [full_name, contact_number]);
+      console.log("SQL QUERY: SELECT * FROM users WHERE full_name = ? AND contact_number = ?", [fullNameString, contactNumberString]);
+      console.log("SQL ARGS:", [fullNameString, contactNumberString]);
       throw error;
     }
 
