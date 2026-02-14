@@ -45,15 +45,9 @@ export async function GET(req: NextRequest) {
     const whereSql = whereParts.length ? `WHERE ${whereParts.join(" AND ")}` : "";
 
     const listArgs = [...args, pageSize, (page - 1) * pageSize] as any[];
-    const list = await db.execute({
-      sql: `SELECT * FROM donor_registrations ${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-      args: listArgs,
-    });
+    const list = await db.execute(`SELECT * FROM donor_registrations ${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`, listArgs);
 
-    const count = await db.execute({
-      sql: `SELECT COUNT(*) as count FROM donor_registrations ${whereSql}`,
-      args: args as any[],
-    });
+    const count = await db.execute(`SELECT COUNT(*) as count FROM donor_registrations ${whereSql}`, args as any[]);
 
     const total = Number((count.rows[0] as any)?.count ?? 0);
 
@@ -89,16 +83,10 @@ export async function POST(req: NextRequest) {
     const placeholders = keys.map(() => "?").join(", ");
 
     const values = keys.map((key) => data[key]) as any[];
-    await db.execute({
-      sql: `INSERT INTO donor_registrations (${keys.join(", ")}) VALUES (${placeholders})`,
-      args: values,
-    });
+    await db.execute(`INSERT INTO donor_registrations (${keys.join(", ")}) VALUES (${placeholders})`, values);
 
     const createdId = String(data.id);
-    const created = await db.execute({
-      sql: "SELECT * FROM donor_registrations WHERE id = ?",
-      args: [createdId],
-    });
+    const created = await db.execute("SELECT * FROM donor_registrations WHERE id = ?", [createdId]);
 
     if (created.rows.length === 0) {
       throw new ApiError(500, "Failed to create donor registration");

@@ -19,15 +19,9 @@ export async function PATCH(
     const id = parseIdParam(resolvedParams);
     const body = statusSchema.parse(await req.json());
 
-    await db.execute({
-      sql: "UPDATE blood_requests SET status = ? WHERE id = ?",
-      args: [body.status, id],
-    });
+    await db.execute("UPDATE blood_requests SET status = ? WHERE id = ?", [body.status, id]);
 
-    const updated = await db.execute({
-      sql: "SELECT * FROM blood_requests WHERE id = ?",
-      args: [id],
-    });
+    const updated = await db.execute("SELECT * FROM blood_requests WHERE id = ?", [id]);
 
     if (updated.rows.length === 0) {
       throw new ApiError(404, "Blood request not found");

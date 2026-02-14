@@ -17,15 +17,9 @@ export async function GET(req: NextRequest) {
 
     const { page, pageSize } = parsePagination(req.nextUrl.searchParams);
 
-    const list = await db.execute({
-      sql: "SELECT * FROM alerts ORDER BY created_at DESC LIMIT ? OFFSET ?",
-      args: [pageSize, (page - 1) * pageSize],
-    });
+    const list = await db.execute("SELECT * FROM alerts ORDER BY created_at DESC LIMIT ? OFFSET ?", [pageSize, (page - 1) * pageSize]);
 
-    const count = await db.execute({
-      sql: "SELECT COUNT(*) as count FROM alerts",
-      args: [],
-    });
+    const count = await db.execute("SELECT COUNT(*) as count FROM alerts", []);
 
     const total = Number((count.rows[0] as any)?.count ?? 0);
 
@@ -60,16 +54,10 @@ export async function POST(req: NextRequest) {
     const placeholders = keys.map(() => "?").join(", ");
 
     const values = keys.map((key) => data[key]) as any[];
-    await db.execute({
-      sql: `INSERT INTO alerts (${keys.join(", ")}) VALUES (${placeholders})`,
-      args: values,
-    });
+    await db.execute(`INSERT INTO alerts (${keys.join(", ")}) VALUES (${placeholders})`, values);
 
     const createdId = String(data.id);
-    const created = await db.execute({
-      sql: "SELECT * FROM alerts WHERE id = ?",
-      args: [createdId],
-    });
+    const created = await db.execute("SELECT * FROM alerts WHERE id = ?", [createdId]);
 
     if (created.rows.length === 0) {
       throw new ApiError(500, "Failed to create alert");

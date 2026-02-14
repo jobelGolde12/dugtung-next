@@ -22,10 +22,7 @@ export async function GET(
     const resolvedParams = await params;
     const id = parseIdParam(resolvedParams);
 
-    const result = await db.execute({
-      sql: "SELECT * FROM donor_registrations WHERE id = ?",
-      args: [id],
-    });
+    const result = await db.execute("SELECT * FROM donor_registrations WHERE id = ?", [id]);
 
     if (result.rows.length === 0) {
       throw new ApiError(404, "Registration not found");
@@ -59,10 +56,7 @@ export async function PATCH(
         keys.forEach(assertSafeIdentifier);
         const setSql = keys.map((key) => `${key} = ?`).join(", ");
         const values = keys.map((key) => updateData[key]) as any[];
-        await db.execute({
-          sql: `UPDATE donor_registrations SET ${setSql} WHERE id = ?`,
-          args: [...values, id],
-        });
+        await db.execute(`UPDATE donor_registrations SET ${setSql} WHERE id = ?`, [...values, id]);
       }
     }
 
@@ -70,10 +64,7 @@ export async function PATCH(
       let donorPayload = body.donorData as Record<string, unknown> | undefined;
 
       if (!donorPayload) {
-        const regResult = await db.execute({
-          sql: "SELECT * FROM donor_registrations WHERE id = ?",
-          args: [id],
-        });
+        const regResult = await db.execute("SELECT * FROM donor_registrations WHERE id = ?", [id]);
         const reg = regResult.rows[0] as Record<string, unknown> | undefined;
         if (!reg) {
           throw new ApiError(404, "Registration not found");
@@ -93,16 +84,10 @@ export async function PATCH(
       const keys = Object.keys(donorPayload);
       const placeholders = keys.map(() => "?").join(", ");
       const values = keys.map((key) => donorPayload[key]) as any[];
-      await db.execute({
-        sql: `INSERT INTO donors (${keys.join(", ")}) VALUES (${placeholders})`,
-        args: values,
-      });
+      await db.execute(`INSERT INTO donors (${keys.join(", ")}) VALUES (${placeholders})`, values);
     }
 
-    const updated = await db.execute({
-      sql: "SELECT * FROM donor_registrations WHERE id = ?",
-      args: [id],
-    });
+    const updated = await db.execute("SELECT * FROM donor_registrations WHERE id = ?", [id]);
 
     if (updated.rows.length === 0) {
       throw new ApiError(404, "Registration not found");
@@ -123,10 +108,7 @@ export async function DELETE(
     const resolvedParams = await params;
     const id = parseIdParam(resolvedParams);
 
-    await db.execute({
-      sql: "DELETE FROM donor_registrations WHERE id = ?",
-      args: [id],
-    });
+    await db.execute("DELETE FROM donor_registrations WHERE id = ?", [id]);
 
     return jsonSuccess({ id });
   } catch (error) {

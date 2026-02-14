@@ -14,15 +14,9 @@ export async function PATCH(
     const id = parseIdParam(resolvedParams);
     const updated_at = new Date().toISOString();
 
-    await db.execute({
-      sql: "UPDATE messages SET is_closed = 1, updated_at = ? WHERE id = ?",
-      args: [updated_at, id],
-    });
+    await db.execute("UPDATE messages SET is_closed = 1, updated_at = ? WHERE id = ?", [updated_at, id]);
 
-    const updated = await db.execute({
-      sql: "SELECT m.*, u.full_name as sender_full_name, u.contact_number as sender_contact_number FROM messages m LEFT JOIN users u ON u.id = m.sender_id WHERE m.id = ?",
-      args: [id],
-    });
+    const updated = await db.execute("SELECT m.*, u.full_name as sender_full_name, u.contact_number as sender_contact_number FROM messages m LEFT JOIN users u ON u.id = m.sender_id WHERE m.id = ?", [id]);
 
     if (updated.rows.length === 0) {
       throw new ApiError(404, "Message not found");

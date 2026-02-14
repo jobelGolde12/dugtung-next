@@ -15,10 +15,7 @@ export async function GET(req: NextRequest) {
   try {
     requireRole(req, ["admin", "hospital_staff", "health_officer"]);
 
-    const result = await db.execute({
-      sql: "SELECT * FROM blood_requests ORDER BY created_at DESC",
-      args: [],
-    });
+    const result = await db.execute("SELECT * FROM blood_requests ORDER BY created_at DESC", []);
 
     return jsonSuccess(result.rows);
   } catch (error) {
@@ -49,16 +46,10 @@ export async function POST(req: NextRequest) {
     const placeholders = keys.map(() => "?").join(", ");
 
     const values = keys.map((key) => data[key]) as any[];
-    await db.execute({
-      sql: `INSERT INTO blood_requests (${keys.join(", ")}) VALUES (${placeholders})`,
-      args: values,
-    });
+    await db.execute(`INSERT INTO blood_requests (${keys.join(", ")}) VALUES (${placeholders})`, values);
 
     const createdId = String(data.id);
-    const created = await db.execute({
-      sql: "SELECT * FROM blood_requests WHERE id = ?",
-      args: [createdId],
-    });
+    const created = await db.execute("SELECT * FROM blood_requests WHERE id = ?", [createdId]);
 
     if (created.rows.length === 0) {
       throw new ApiError(500, "Failed to create blood request");
