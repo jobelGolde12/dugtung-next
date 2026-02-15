@@ -17,8 +17,12 @@ export async function GET(req: NextRequest) {
 
     // Ensure ID is a string for the response
     const userForResponse = {
-      ...safeUser,
-      id: String(safeUser.id)
+      id: String(safeUser.id),
+      role: safeUser.role,
+      name: safeUser.full_name,
+      contact_number: safeUser.contact_number,
+      email: safeUser.email,
+      avatar_url: safeUser.avatar_url ?? null
     };
 
     return jsonSuccess({ user: userForResponse });

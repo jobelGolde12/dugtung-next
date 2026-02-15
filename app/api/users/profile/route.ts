@@ -30,9 +30,19 @@ export async function GET(req: NextRequest) {
     const { password_hash: _password_hash, ...safeUser } = user;
 
     // Ensure ID is a string for the response
+    // Map full_name -> name to match frontend expectations
     const userForResponse = {
-      ...safeUser,
-      id: String(safeUser.id)
+      id: String(safeUser.id),
+      role: safeUser.role,
+      name: safeUser.full_name,
+      contact_number: safeUser.contact_number,
+      email: safeUser.email,
+      avatar_url: safeUser.avatar_url ?? null,
+      municipality: safeUser.municipality,
+      blood_type: safeUser.blood_type,
+      sex: safeUser.sex,
+      age: safeUser.age,
+      availability_status: safeUser.availability_status
     };
 
     return jsonSuccess(userForResponse);
@@ -91,9 +101,19 @@ export async function PATCH(req: NextRequest) {
     const { password_hash: _password_hash, ...safeUser } = user;
 
     // Ensure ID is a string for the response
+    // Map full_name -> name to match frontend expectations
     const userForResponse = {
-      ...safeUser,
-      id: String(safeUser.id)
+      id: String(safeUser.id),
+      role: safeUser.role,
+      name: safeUser.full_name,
+      contact_number: safeUser.contact_number,
+      email: safeUser.email,
+      avatar_url: safeUser.avatar_url ?? null,
+      municipality: safeUser.municipality,
+      blood_type: safeUser.blood_type,
+      sex: safeUser.sex,
+      age: safeUser.age,
+      availability_status: safeUser.availability_status
     };
 
     return jsonSuccess(userForResponse);

@@ -47,10 +47,11 @@ export async function POST(req: Request) {
       token_type: "bearer",
       user: {
         id: String(id), // Ensure ID is string for SecureStore
-        email,
         role,
-        full_name,
+        name: full_name, // Map full_name -> name
         contact_number,
+        email,
+        avatar_url: null
       },
     }, 201);
   } catch (error) {

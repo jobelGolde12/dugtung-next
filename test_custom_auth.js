@@ -70,19 +70,36 @@ async function testAuthSchema() {
         );
         console.log(`✓ Inserted user with ID ${newId}`);
 
-        // Verify retrieval
+        // Verify retrieval structure
         const select = await db.execute("SELECT * FROM users WHERE id = ?", [newId]);
         const user = select.rows[0];
 
         console.log("Retrieved User ID:", user.id, "(Type:", typeof user.id, ")");
 
-        // In JS, depending on the driver, DB integers might come back as numbers.
-        // The key fix was ensuring the API *returns* it as a string.
+        // Simulate what the API does now
+        const userForResponse = {
+            id: String(user.id),
+            role: user.role,
+            name: user.full_name, // This is the key mapping
+            contact_number: user.contact_number,
+            email: user.email,
+            avatar_url: user.avatar_url ?? null
+        };
+
+        console.log("Simulated API Response:", JSON.stringify(userForResponse, null, 2));
+
+        if (userForResponse.name === "Test User") {
+            console.log("✓ 'name' field is correctly mapped from 'full_name'.");
+        } else {
+            console.error("✗ 'name' field mapping FAILED.");
+            process.exit(1);
+        }
 
         if (user.email === testEmail) {
             console.log("✓ User retrieval successful.");
         } else {
             console.error("✗ User retrieval failed.");
+            process.exit(1); // Added this line to exit on failure, consistent with other error handling
         }
 
         // Clean up

@@ -55,9 +55,14 @@ export async function POST(req: Request) {
         const { password_hash, ...safeUser } = user;
 
         // Ensure ID is a string for the response (fix for SecureStore error)
+        // Map full_name -> name to match frontend expectations
         const userForResponse = {
-          ...safeUser,
-          id: String(safeUser.id)
+          id: String(safeUser.id),
+          role: safeUser.role,
+          name: safeUser.full_name,
+          contact_number: safeUser.contact_number,
+          email: safeUser.email,
+          avatar_url: safeUser.avatar_url ?? null
         };
 
         return jsonSuccess({
@@ -144,9 +149,14 @@ export async function POST(req: Request) {
     const { password_hash: _password_hash, ...safeUser } = user;
 
     // Ensure ID is a string for the response (fix for SecureStore error)
+    // Map full_name -> name to match frontend expectations
     const userForResponse = {
-      ...safeUser,
-      id: String(safeUser.id)
+      id: String(safeUser.id),
+      role: safeUser.role,
+      name: safeUser.full_name,
+      contact_number: safeUser.contact_number,
+      email: safeUser.email,
+      avatar_url: safeUser.avatar_url ?? null
     };
 
     return jsonSuccess({
