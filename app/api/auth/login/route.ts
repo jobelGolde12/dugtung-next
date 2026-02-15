@@ -95,13 +95,29 @@ export async function POST(req: Request) {
     let user: Record<string, unknown> | undefined;
 
     try {
-      // Try to find user by normalized contact number (digits only)
-      // This handles both formatted (0912-345-6789) and unformatted (09123456789) numbers
-      const existing = await db.execute(
-        "SELECT * FROM users WHERE full_name = ? AND REPLACE(REPLACE(contact_number, '-', ''), ' ', '') = ?", 
+      // First, try to find user by exact match
+      let existing = await db.execute(
+        "SELECT * FROM users WHERE full_name = ? AND contact_number = ?", 
         [fullNameString, contactNumberString]
       );
       user = existing.rows[0] as Record<string, unknown> | undefined;
+      
+      // If not found, try to find by full_name and check contact numbers manually
+      if (!user) {
+        const allUsers = await db.execute(
+          "SELECT * FROM users WHERE full_name = ?",
+          [fullNameString]
+        );
+        
+        // Find user with matching contact number (normalized)
+        for (const row of allUsers.rows) {
+          const storedContact = String((row as any).contact_number || '').replace(/\D/g, '');
+          if (storedContact === contactNumberString) {
+            user = row as Record<string, unknown>;
+            break;
+          }
+        }
+      }
 
       if (!user) {
         const result = await db.execute("SELECT MAX(CAST(id AS INTEGER)) as max_id FROM users");
