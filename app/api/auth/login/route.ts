@@ -83,7 +83,8 @@ export async function POST(req: Request) {
 
     // Ensure types are correct to prevent type mismatch
     const fullNameString = String(full_name);
-    const contactNumberString = String(contact_number);
+    // Normalize contact number - remove all non-digit characters
+    const contactNumberString = String(contact_number).replace(/\D/g, '');
 
     // Log the types of the values being passed to the query
     console.log("LOGIN BY CONTACT - ARG TYPES:", {
@@ -94,7 +95,12 @@ export async function POST(req: Request) {
     let user: Record<string, unknown> | undefined;
 
     try {
-      const existing = await db.execute("SELECT * FROM users WHERE full_name = ? AND contact_number = ?", [fullNameString, contactNumberString]);
+      // Try to find user by normalized contact number (digits only)
+      // This handles both formatted (0912-345-6789) and unformatted (09123456789) numbers
+      const existing = await db.execute(
+        "SELECT * FROM users WHERE full_name = ? AND REPLACE(REPLACE(contact_number, '-', ''), ' ', '') = ?", 
+        [fullNameString, contactNumberString]
+      );
       user = existing.rows[0] as Record<string, unknown> | undefined;
 
       if (!user) {
@@ -115,7 +121,11 @@ export async function POST(req: Request) {
 
         try {
           // Insert with only columns that exist in the users table
-          await db.execute("INSERT INTO users (id, full_name, contact_number, role, created_at) VALUES (?, ?, ?, ?, ?)", [id, fullNameString, contactNumberString, role, created_at]);
+          // Store normalized contact number (digits only)
+          await db.execute(
+            "INSERT INTO users (id, full_name, contact_number, role, created_at) VALUES (?, ?, ?, ?, ?)", 
+            [id, fullNameString, contactNumberString, role, created_at]
+          );
         } catch (error) {
           console.error("SQL ERROR in user creation:", error);
           console.log("SQL QUERY: INSERT INTO users (id, full_name, contact_number, role, created_at) VALUES (?, ?, ?, ?, ?)");

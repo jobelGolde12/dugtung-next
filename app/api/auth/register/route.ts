@@ -17,6 +17,9 @@ export async function POST(req: Request) {
     const body = registerSchema.parse(await req.json());
     const { email, password, full_name, contact_number } = body;
     const role = normalizeRole(body.role ?? "user");
+    
+    // Normalize contact number - remove all non-digit characters
+    const normalizedContactNumber = contact_number ? contact_number.replace(/\D/g, '') : null;
 
     const existing = await db.execute("SELECT * FROM users WHERE email = ?", [email]);
 
@@ -35,7 +38,7 @@ export async function POST(req: Request) {
     // Insert user with password_hash and integer ID
     await db.execute(
       "INSERT INTO users (id, email, password_hash, role, full_name, contact_number, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [id, email, password_hash, role, full_name ?? null, contact_number ?? null, created_at]
+      [id, email, password_hash, role, full_name ?? null, normalizedContactNumber, created_at]
     );
 
     // Sign token with string ID (important for jwt)
@@ -49,7 +52,7 @@ export async function POST(req: Request) {
         id: String(id), // Ensure ID is string for SecureStore
         role,
         name: full_name, // Map full_name -> name
-        contact_number,
+        contact_number: normalizedContactNumber,
         email,
         avatar_url: null
       },
