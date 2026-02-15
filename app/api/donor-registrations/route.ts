@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     const data = { ...body } as Record<string, unknown>;
-    
+
     if (Object.keys(data).length === 0) {
       throw new ApiError(400, "No data provided");
     }
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
     const placeholders = keys.map(() => "?").join(", ");
 
     const values = keys.map((key) => data[key]) as any[];
-    
+
     await db.execute(`INSERT INTO donor_registrations (${keys.join(", ")}) VALUES (${placeholders})`, values);
 
     const createdId = Number(data.id);
@@ -114,7 +114,22 @@ export async function POST(req: NextRequest) {
       throw new ApiError(500, "Failed to create donor registration");
     }
 
-    return jsonSuccess(created.rows[0], 201);
+    const createdUser = created.rows[0] as Record<string, unknown>;
+
+    // Normalize response for frontend (SecureStore compatibility)
+    const userForResponse = {
+      id: String(createdUser.id),
+      name: createdUser.full_name, // Map full_name -> name
+      contact_number: createdUser.contact_number,
+      municipality: createdUser.municipality,
+      blood_type: createdUser.blood_type,
+      age: createdUser.age,
+      status: createdUser.status,
+      availability: createdUser.availability,
+      created_at: createdUser.created_at
+    };
+
+    return jsonSuccess(userForResponse, 201);
   } catch (error) {
     return handleApiError(error);
   }
