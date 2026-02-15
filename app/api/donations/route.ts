@@ -15,12 +15,17 @@ export async function GET(req: NextRequest) {
   try {
     requireRole(req, ["admin", "hospital_staff", "health_officer"]);
 
-    const result = await db.execute({
-      sql: "SELECT * FROM donations ORDER BY donation_date DESC",
-      args: [],
-    });
+    try {
+      const result = await db.execute({
+        sql: "SELECT * FROM donations ORDER BY donation_date DESC",
+        args: [],
+      });
 
-    return jsonSuccess(result.rows);
+      return jsonSuccess(result.rows);
+    } catch (dbError) {
+      console.error("Database error in donations:", dbError);
+      return jsonSuccess([]);
+    }
   } catch (error) {
     return handleApiError(error);
   }

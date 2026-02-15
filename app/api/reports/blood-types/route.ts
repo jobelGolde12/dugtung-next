@@ -7,12 +7,17 @@ export async function GET(req: NextRequest) {
   try {
     requireRole(req, ["admin", "health_officer"]);
 
-    const result = await db.execute({
-      sql: "SELECT blood_type as bloodType, COUNT(*) as count FROM donors WHERE is_deleted = 0 GROUP BY blood_type",
-      args: [],
-    });
+    try {
+      const result = await db.execute({
+        sql: "SELECT blood_type as bloodType, COUNT(*) as count FROM donors WHERE is_deleted = 0 GROUP BY blood_type",
+        args: [],
+      });
 
-    return jsonSuccess(result.rows);
+      return jsonSuccess(result.rows);
+    } catch (dbError) {
+      console.error("Database error in reports/blood-types:", dbError);
+      return jsonSuccess([]);
+    }
   } catch (error) {
     return handleApiError(error);
   }

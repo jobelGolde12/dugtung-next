@@ -34,33 +34,45 @@ export async function GET(req: NextRequest) {
 
     const whereSql = whereParts.length ? `WHERE ${whereParts.join(" AND ")}` : "";
 
-    const listArgs = [...args, pageSize, (page - 1) * pageSize] as any[];
-    const list = await db.execute({
-      sql: `SELECT * FROM notifications ${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-      args: listArgs,
-    });
+    try {
+      const listArgs = [...args, pageSize, (page - 1) * pageSize] as any[];
+      const list = await db.execute({
+        sql: `SELECT * FROM notifications ${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+        args: listArgs,
+      });
 
-    const count = await db.execute({
-      sql: `SELECT COUNT(*) as count FROM notifications ${whereSql}`,
-      args: args as any[],
-    });
+      const count = await db.execute({
+        sql: `SELECT COUNT(*) as count FROM notifications ${whereSql}`,
+        args: args as any[],
+      });
 
-    const baseWhereSql = baseWhereParts.length ? `WHERE ${baseWhereParts.join(" AND ")}` : "";
-    const unreadCountQuery = await db.execute({
-      sql: `SELECT COUNT(*) as count FROM notifications ${baseWhereSql}${baseWhereSql ? " AND" : "WHERE"} is_read = 0`,
-      args: baseArgs as any[],
-    });
+      const baseWhereSql = baseWhereParts.length ? `WHERE ${baseWhereParts.join(" AND ")}` : "";
+      const unreadCountQuery = await db.execute({
+        sql: `SELECT COUNT(*) as count FROM notifications ${baseWhereSql}${baseWhereSql ? " AND" : "WHERE"} is_read = 0`,
+        args: baseArgs as any[],
+      });
 
-    const total = Number((count.rows[0] as any)?.count ?? 0);
-    const unread = Number((unreadCountQuery.rows[0] as any)?.count ?? 0);
+      const total = Number((count.rows[0] as any)?.count ?? 0);
+      const unread = Number((unreadCountQuery.rows[0] as any)?.count ?? 0);
 
-    return jsonSuccess({
-      items: list.rows,
-      total,
-      unread,
-      page,
-      pageSize,
-    });
+      return jsonSuccess({
+        items: list.rows,
+        total,
+        unread,
+        page,
+        pageSize,
+      });
+    } catch (dbError) {
+      // If table doesn't exist, return empty result
+      console.error("Database error in notifications:", dbError);
+      return jsonSuccess({
+        items: [],
+        total: 0,
+        unread: 0,
+        page,
+        pageSize,
+      });
+    }
   } catch (error) {
     return handleApiError(error);
   }

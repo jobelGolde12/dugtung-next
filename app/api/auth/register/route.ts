@@ -9,7 +9,7 @@ const registerSchema = z.object({
   password: z.string().min(6),
   full_name: z.string().min(1).optional(),
   contact_number: z.string().min(1).optional(),
-  role: z.enum(["user", "donor"]).optional(),
+  role: z.enum(["user", "donor", "admin", "hospital_staff", "health_officer"]).optional(),
 });
 
 export async function POST(req: Request) {

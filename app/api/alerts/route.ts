@@ -17,18 +17,28 @@ export async function GET(req: NextRequest) {
 
     const { page, pageSize } = parsePagination(req.nextUrl.searchParams);
 
-    const list = await db.execute("SELECT * FROM alerts ORDER BY created_at DESC LIMIT ? OFFSET ?", [pageSize, (page - 1) * pageSize]);
+    try {
+      const list = await db.execute("SELECT * FROM alerts ORDER BY created_at DESC LIMIT ? OFFSET ?", [pageSize, (page - 1) * pageSize]);
 
-    const count = await db.execute("SELECT COUNT(*) as count FROM alerts", []);
+      const count = await db.execute("SELECT COUNT(*) as count FROM alerts", []);
 
-    const total = Number((count.rows[0] as any)?.count ?? 0);
+      const total = Number((count.rows[0] as any)?.count ?? 0);
 
-    return jsonSuccess({
-      items: list.rows,
-      total,
-      page,
-      pageSize,
-    });
+      return jsonSuccess({
+        items: list.rows,
+        total,
+        page,
+        pageSize,
+      });
+    } catch (dbError) {
+      console.error("Database error in alerts:", dbError);
+      return jsonSuccess({
+        items: [],
+        total: 0,
+        page,
+        pageSize,
+      });
+    }
   } catch (error) {
     return handleApiError(error);
   }

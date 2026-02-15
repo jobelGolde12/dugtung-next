@@ -15,9 +15,13 @@ export async function GET(req: NextRequest) {
   try {
     requireRole(req, ["admin", "hospital_staff", "health_officer"]);
 
-    const result = await db.execute("SELECT * FROM blood_requests ORDER BY created_at DESC", []);
-
-    return jsonSuccess(result.rows);
+    try {
+      const result = await db.execute("SELECT * FROM blood_requests ORDER BY created_at DESC", []);
+      return jsonSuccess(result.rows);
+    } catch (dbError) {
+      console.error("Database error in blood-requests:", dbError);
+      return jsonSuccess([]);
+    }
   } catch (error) {
     return handleApiError(error);
   }

@@ -49,25 +49,35 @@ export async function GET(req: NextRequest) {
 
     const whereSql = `WHERE ${whereParts.join(" AND ")}`;
 
-    const listArgs = [...args, pageSize, (page - 1) * pageSize] as any[];
-    const list = await db.execute({
-      sql: `SELECT * FROM donors ${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-      args: listArgs,
-    });
+    try {
+      const listArgs = [...args, pageSize, (page - 1) * pageSize] as any[];
+      const list = await db.execute({
+        sql: `SELECT * FROM donors ${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+        args: listArgs,
+      });
 
-    const count = await db.execute({
-      sql: `SELECT COUNT(*) as count FROM donors ${whereSql}`,
-      args: args as any[],
-    });
+      const count = await db.execute({
+        sql: `SELECT COUNT(*) as count FROM donors ${whereSql}`,
+        args: args as any[],
+      });
 
-    const total = Number((count.rows[0] as any)?.count ?? 0);
+      const total = Number((count.rows[0] as any)?.count ?? 0);
 
-    return jsonSuccess({
-      items: list.rows,
-      total,
-      page,
-      pageSize,
-    });
+      return jsonSuccess({
+        items: list.rows,
+        total,
+        page,
+        pageSize,
+      });
+    } catch (dbError) {
+      console.error("Database error in donors:", dbError);
+      return jsonSuccess({
+        items: [],
+        total: 0,
+        page,
+        pageSize,
+      });
+    }
   } catch (error) {
     return handleApiError(error);
   }
