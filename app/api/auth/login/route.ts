@@ -81,88 +81,29 @@ export async function POST(req: Request) {
 
     const { full_name, contact_number } = body;
 
-    // Ensure types are correct to prevent type mismatch
     const fullNameString = String(full_name);
-    // Normalize contact number - remove all non-digit characters
     const contactNumberString = String(contact_number).replace(/\D/g, '');
-
-    // Log the types of the values being passed to the query
-    console.log("LOGIN BY CONTACT - ARG TYPES:", {
-      full_name: { value: fullNameString, type: typeof fullNameString },
-      contact_number: { value: contactNumberString, type: typeof contactNumberString }
-    });
 
     let user: Record<string, unknown> | undefined;
 
     try {
-      // First, try to find user by exact match
-      let existing = await db.execute(
-        "SELECT * FROM users WHERE full_name = ? AND contact_number = ?", 
-        [fullNameString, contactNumberString]
-      );
+      const existing = await db.execute("SELECT * FROM users WHERE full_name = ? AND contact_number = ?", [fullNameString, contactNumberString]);
       user = existing.rows[0] as Record<string, unknown> | undefined;
-      
-      // If not found, try to find by full_name and check contact numbers manually
-      if (!user) {
-        const allUsers = await db.execute(
-          "SELECT * FROM users WHERE full_name = ?",
-          [fullNameString]
-        );
-        
-        // Find user with matching contact number (normalized)
-        for (const row of allUsers.rows) {
-          const storedContact = String((row as any).contact_number || '').replace(/\D/g, '');
-          if (storedContact === contactNumberString) {
-            user = row as Record<string, unknown>;
-            break;
-          }
-        }
-      }
 
       if (!user) {
         const result = await db.execute("SELECT MAX(CAST(id AS INTEGER)) as max_id FROM users");
         const maxId = Number((result.rows[0] as any)?.max_id ?? 0);
         const id = maxId + 1;
-        const now = new Date();
-        const created_at = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        const created_at = new Date().toISOString();
         const role = "donor";
 
-        console.log("INSERT USER - ARG TYPES:", {
-          id: { value: id, type: typeof id },
-          full_name: { value: fullNameString, type: typeof fullNameString },
-          contact_number: { value: contactNumberString, type: typeof contactNumberString },
-          role: { value: role, type: typeof role },
-          created_at: { value: created_at, type: typeof created_at }
-        });
+        await db.execute("INSERT INTO users (id, full_name, contact_number, role, created_at) VALUES (?, ?, ?, ?, ?)", [id, fullNameString, contactNumberString, role, created_at]);
 
-        try {
-          // Insert with only columns that exist in the users table
-          // Store normalized contact number (digits only)
-          await db.execute(
-            "INSERT INTO users (id, full_name, contact_number, role, created_at) VALUES (?, ?, ?, ?, ?)", 
-            [id, fullNameString, contactNumberString, role, created_at]
-          );
-        } catch (error) {
-          console.error("SQL ERROR in user creation:", error);
-          console.log("SQL QUERY: INSERT INTO users (id, full_name, contact_number, role, created_at) VALUES (?, ?, ?, ?, ?)");
-          console.log("SQL ARGS:", [id, fullNameString, contactNumberString, role, created_at]);
-          throw error;
-        }
-
-        try {
-          const created = await db.execute("SELECT * FROM users WHERE id = ?", [id]);
-          user = created.rows[0] as Record<string, unknown> | undefined;
-        } catch (error) {
-          console.error("SQL ERROR in user retrieval after creation:", error);
-          console.log("SQL QUERY: SELECT * FROM users WHERE id = ?", [id]);
-          console.log("SQL ARGS:", [id]);
-          throw error;
-        }
+        const created = await db.execute("SELECT * FROM users WHERE id = ?", [id]);
+        user = created.rows[0] as Record<string, unknown> | undefined;
       }
     } catch (error) {
       console.error("SQL ERROR in contact login:", error);
-      console.log("SQL QUERY: SELECT * FROM users WHERE full_name = ? AND contact_number = ?", [fullNameString, contactNumberString]);
-      console.log("SQL ARGS:", [fullNameString, contactNumberString]);
       throw error;
     }
 
