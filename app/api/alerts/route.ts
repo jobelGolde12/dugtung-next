@@ -55,8 +55,11 @@ export async function POST(req: NextRequest) {
       throw new ApiError(400, "No data provided");
     }
 
+    // Generate integer ID instead of UUID
     if (!data.id) {
-      data.id = randomUUID();
+      const result = await db.execute("SELECT MAX(CAST(id AS INTEGER)) as max_id FROM alerts");
+      const maxId = Number((result.rows[0] as any)?.max_id ?? 0);
+      data.id = maxId + 1;
     }
 
     Object.keys(data).forEach(assertSafeIdentifier);
