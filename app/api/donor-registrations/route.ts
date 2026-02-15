@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
       created_at: createdUser.created_at
     };
 
-    return jsonSuccess(userForResponse, 201);
+    return jsonSuccess({ registration: userForResponse }, 201);
   } catch (error) {
     return handleApiError(error);
   }
