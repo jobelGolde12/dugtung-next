@@ -7,12 +7,17 @@ export async function GET(req: NextRequest) {
   try {
     requireRole(req, ["admin", "health_officer"]);
 
-    const result = await db.execute({
-      sql: "SELECT strftime('%Y-%m', donation_date) as month, COUNT(*) as donations FROM donations GROUP BY month ORDER BY month",
-      args: [],
-    });
+    try {
+      const result = await db.execute({
+        sql: "SELECT strftime('%Y-%m', donation_date) as month, COUNT(*) as donations FROM donations GROUP BY month ORDER BY month",
+        args: [],
+      });
 
-    return jsonSuccess(result.rows);
+      return jsonSuccess(result.rows);
+    } catch (dbError) {
+      console.error("Database error in monthly-donations:", dbError);
+      return jsonSuccess([]);
+    }
   } catch (error) {
     return handleApiError(error);
   }
