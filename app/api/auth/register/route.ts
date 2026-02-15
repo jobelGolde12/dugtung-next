@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+
 import { z } from "zod";
 import { db } from "@/lib/turso";
 import { ApiError, handleApiError, jsonSuccess } from "@/lib/http";
@@ -24,21 +24,29 @@ export async function POST(req: Request) {
       throw new ApiError(409, "Email already registered");
     }
 
-    const id = randomUUID();
+    // Generate integer ID instead of UUID to match schema
+    const result = await db.execute("SELECT MAX(CAST(id AS INTEGER)) as max_id FROM users");
+    const maxId = Number((result.rows[0] as any)?.max_id ?? 0);
+    const id = maxId + 1;
+
     const password_hash = await hashPassword(password);
     const created_at = new Date().toISOString();
 
-    // Only insert columns that exist in the users table (excluding password_hash if it doesn't exist)
-    await db.execute("INSERT INTO users (id, email, role, full_name, contact_number, created_at) VALUES (?, ?, ?, ?, ?, ?)", [id, email, role, full_name ?? null, contact_number ?? null, created_at]);
+    // Insert user with password_hash and integer ID
+    await db.execute(
+      "INSERT INTO users (id, email, password_hash, role, full_name, contact_number, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [id, email, password_hash, role, full_name ?? null, contact_number ?? null, created_at]
+    );
 
-    const token = signToken({ id, role });
+    // Sign token with string ID (important for jwt)
+    const token = signToken({ id: String(id), role });
 
     return jsonSuccess({
       access_token: token,
       refresh_token: "", // No refresh token in this implementation
       token_type: "bearer",
       user: {
-        id,
+        id: String(id), // Ensure ID is string for SecureStore
         email,
         role,
         full_name,

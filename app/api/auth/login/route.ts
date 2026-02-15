@@ -22,15 +22,15 @@ export async function POST(req: Request) {
 
     if ("email" in body) {
       const { email, password } = body;
-      
+
       // Ensure email is a string to prevent type mismatch
       const emailString = String(email);
-      
+
       // Log the types of the values being passed to the query
       console.log("LOGIN BY EMAIL - ARG TYPES:", {
         email: { value: emailString, type: typeof emailString }
       });
-      
+
       try {
         const result = await db.execute("SELECT * FROM users WHERE email = ?", [emailString]);
 
@@ -53,11 +53,18 @@ export async function POST(req: Request) {
         const token = signToken({ id: String(user.id), role });
 
         const { password_hash, ...safeUser } = user;
-        return jsonSuccess({ 
+
+        // Ensure ID is a string for the response (fix for SecureStore error)
+        const userForResponse = {
+          ...safeUser,
+          id: String(safeUser.id)
+        };
+
+        return jsonSuccess({
           access_token: token,
           refresh_token: "", // No refresh token in this implementation
           token_type: "bearer",
-          user: safeUser 
+          user: userForResponse
         });
       } catch (error) {
         console.error("SQL ERROR in email login:", error);
@@ -136,13 +143,20 @@ export async function POST(req: Request) {
     const token = signToken({ id: String(user.id), role });
     const { password_hash: _password_hash, ...safeUser } = user;
 
-    return jsonSuccess({ 
+    // Ensure ID is a string for the response (fix for SecureStore error)
+    const userForResponse = {
+      ...safeUser,
+      id: String(safeUser.id)
+    };
+
+    return jsonSuccess({
       access_token: token,
       refresh_token: "", // No refresh token in this implementation
       token_type: "bearer",
-      user: safeUser 
+      user: userForResponse
     });
   } catch (error) {
     return handleApiError(error);
   }
 }
+

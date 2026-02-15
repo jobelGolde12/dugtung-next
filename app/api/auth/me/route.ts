@@ -14,7 +14,14 @@ export async function GET(req: NextRequest) {
 
     const user = result.rows[0] as Record<string, unknown>;
     const { password_hash: _password_hash, ...safeUser } = user;
-    return jsonSuccess(safeUser);
+
+    // Ensure ID is a string for the response
+    const userForResponse = {
+      ...safeUser,
+      id: String(safeUser.id)
+    };
+
+    return jsonSuccess({ user: userForResponse });
   } catch (error) {
     return handleApiError(error);
   }
