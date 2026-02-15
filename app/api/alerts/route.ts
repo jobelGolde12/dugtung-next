@@ -64,7 +64,15 @@ export async function POST(req: NextRequest) {
     const placeholders = keys.map(() => "?").join(", ");
 
     const values = keys.map((key) => data[key]) as any[];
-    await db.execute(`INSERT INTO alerts (${keys.join(", ")}) VALUES (${placeholders})`, values);
+    
+    try {
+      await db.execute(`INSERT INTO alerts (${keys.join(", ")}) VALUES (${placeholders})`, values);
+    } catch (dbError: any) {
+      console.error("Database error inserting alert:", dbError);
+      console.error("SQL:", `INSERT INTO alerts (${keys.join(", ")}) VALUES (${placeholders})`);
+      console.error("Values:", values);
+      throw new ApiError(500, `Database error: ${dbError.message || 'Unknown error'}`);
+    }
 
     const createdId = String(data.id);
     const created = await db.execute("SELECT * FROM alerts WHERE id = ?", [createdId]);
