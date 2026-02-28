@@ -15,9 +15,9 @@ export async function GET(req: NextRequest) {
     const auth = requireAuth(req);
     const { page, pageSize } = parsePagination(req.nextUrl.searchParams);
 
-    const senderId = req.nextUrl.searchParams.get("senderId");
-    const recipientId = req.nextUrl.searchParams.get("recipientId");
-    const isClosed = req.nextUrl.searchParams.get("isClosed");
+    const sender_id = req.nextUrl.searchParams.get("sender_id") || req.nextUrl.searchParams.get("senderId");
+    const recipient_id = req.nextUrl.searchParams.get("recipient_id") || req.nextUrl.searchParams.get("recipientId");
+    const is_closed = req.nextUrl.searchParams.get("is_closed") || req.nextUrl.searchParams.get("isClosed");
 
     const whereParts: string[] = [];
     const args: unknown[] = [];
@@ -26,19 +26,19 @@ export async function GET(req: NextRequest) {
       whereParts.push("m.sender_id = ?");
       args.push(auth.id);
     } else {
-      if (senderId) {
+      if (sender_id) {
         whereParts.push("m.sender_id = ?");
-        args.push(senderId);
+        args.push(sender_id);
       }
-      if (recipientId) {
+      if (recipient_id) {
         whereParts.push("m.recipient_id = ?");
-        args.push(recipientId);
+        args.push(recipient_id);
       }
     }
 
-    if (isClosed === "true") {
+    if (is_closed === "true") {
       whereParts.push("m.is_closed = 1");
-    } else if (isClosed === "false") {
+    } else if (is_closed === "false") {
       whereParts.push("m.is_closed = 0");
     }
 
@@ -52,6 +52,7 @@ export async function GET(req: NextRequest) {
     const total = Number((count.rows[0] as any)?.count ?? 0);
 
     return jsonSuccess({
+      messages: list.rows,  // For backward compatibility
       items: list.rows,
       total,
       page,
