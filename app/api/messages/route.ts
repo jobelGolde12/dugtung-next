@@ -1,4 +1,3 @@
-import { randomUUID } from "crypto";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/turso";
@@ -73,10 +72,11 @@ export async function POST(req: NextRequest) {
       throw new ApiError(400, "No data provided");
     }
 
-    if (!data.id) {
-      data.id = randomUUID();
-    }
-    if (!isPrivilegedRole(auth.role) || !data.sender_id) {
+    // For messages, don't set id - let it be auto-incremented
+    // Remove any id that might have been passed
+    delete data.id;
+
+    if (!isPrivilegedRole(auth.role)) {
       data.sender_id = auth.id;
     }
 
@@ -87,7 +87,9 @@ export async function POST(req: NextRequest) {
     const values = keys.map((key) => data[key]) as any[];
     await db.execute(`INSERT INTO messages (${keys.join(", ")}) VALUES (${placeholders})`, values);
 
-    const createdId = String(data.id);
+    // Get the last inserted id
+    const lastId = await db.execute("SELECT last_insert_rowid() as id");
+    const createdId = (lastId.rows[0] as any).id;
     const created = await db.execute("SELECT m.*, u.full_name as sender_full_name, u.contact_number as sender_contact_number FROM messages m LEFT JOIN users u ON u.id = m.sender_id WHERE m.id = ?", [createdId]);
 
     if (created.rows.length === 0) {
