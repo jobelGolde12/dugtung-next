@@ -13,7 +13,8 @@ const createSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    requireRole(req, ["admin", "hospital_staff", "health_officer"]);
+    // Allow admin, hospital_staff, health_officer, and donors to access
+    requireRole(req, ["admin", "hospital_staff", "health_officer", "donor"]);
 
     const { page, pageSize } = parsePagination(req.nextUrl.searchParams);
     const bloodType = req.nextUrl.searchParams.get("bloodType");

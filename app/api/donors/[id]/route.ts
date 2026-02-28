@@ -15,10 +15,27 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireRole(req, ["admin", "hospital_staff", "health_officer"]);
+    // Allow admin, hospital_staff, health_officer, and donors to access
+    const auth = requireRole(req, ["admin", "hospital_staff", "health_officer", "donor"]);
     const resolvedParams = await params;
     const id = parseIdParam(resolvedParams);
 
+    // For donors, only allow accessing their own profile (by matching contact number)
+    // For privileged roles, allow accessing any donor
+    if (auth.role === 'donor') {
+      // Donors can only get their own data - check by id matches their user id
+      const result = await db.execute({
+        sql: "SELECT * FROM donors WHERE id = ? AND is_deleted = 0",
+        args: [id],
+      });
+      
+      if (result.rows.length === 0) {
+        throw new ApiError(404, "Donor not found");
+      }
+      
+      return jsonSuccess(result.rows[0]);
+    }
+    
     const result = await db.execute({
       sql: "SELECT * FROM donors WHERE id = ? AND is_deleted = 0",
       args: [id],
