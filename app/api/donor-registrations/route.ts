@@ -78,10 +78,6 @@ export async function POST(req: NextRequest) {
       delete data.availability_status;
     }
 
-    if (data.sex) {
-      delete data.sex;
-    }
-
     if (data.age) {
       const parsedAge = parseInt(String(data.age), 10);
       if (isNaN(parsedAge)) {
@@ -89,6 +85,8 @@ export async function POST(req: NextRequest) {
       }
       data.age = parsedAge;
     }
+
+    // Keep sex field - do not delete it
 
     if (!data.id) {
       const result = await db.execute("SELECT MAX(CAST(id AS INTEGER)) as max_id FROM donor_registrations");
