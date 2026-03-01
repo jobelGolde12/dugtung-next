@@ -91,6 +91,8 @@ export async function POST(req: NextRequest) {
     const body = createSchema.parse(await req.json());
     const data = { ...body.data } as Record<string, unknown>;
 
+    console.log("📥 Received donor data:", JSON.stringify(data, null, 2));
+
     if (Object.keys(data).length === 0) {
       throw new ApiError(400, "No data provided");
     }
@@ -101,6 +103,9 @@ export async function POST(req: NextRequest) {
     if (data.is_deleted === undefined) {
       data.is_deleted = 0;
     }
+    if (!data.created_at) {
+      data.created_at = new Date().toISOString();
+    }
 
     Object.keys(data).forEach(assertSafeIdentifier);
 
@@ -108,6 +113,10 @@ export async function POST(req: NextRequest) {
     const placeholders = keys.map(() => "?").join(", ");
 
     const values = keys.map((key) => data[key]) as any[];
+    
+    console.log("📤 Inserting with SQL:", `INSERT INTO donors (${keys.join(", ")}) VALUES (${placeholders})`);
+    console.log("📤 Values:", values);
+
     await db.execute({
       sql: `INSERT INTO donors (${keys.join(", ")}) VALUES (${placeholders})`,
       args: values,
@@ -123,8 +132,11 @@ export async function POST(req: NextRequest) {
       throw new ApiError(500, "Failed to create donor");
     }
 
+    console.log("✅ Donor created successfully:", created.rows[0]);
+
     return jsonSuccess(created.rows[0], 201);
   } catch (error) {
+    console.error("❌ Error creating donor:", error);
     return handleApiError(error);
   }
 }
