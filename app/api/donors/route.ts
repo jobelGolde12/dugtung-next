@@ -97,9 +97,14 @@ export async function POST(req: NextRequest) {
       throw new ApiError(400, "No data provided");
     }
 
-    if (!data.id) {
-      data.id = randomUUID();
-    }
+    // Get next ID from database
+    const maxIdResult = await db.execute({
+      sql: "SELECT MAX(CAST(id AS INTEGER)) as max_id FROM donors",
+      args: []
+    });
+    const maxId = Number(maxIdResult.rows[0]?.max_id ?? 0);
+    data.id = maxId + 1;
+
     if (data.is_deleted === undefined) {
       data.is_deleted = 0;
     }
