@@ -57,6 +57,27 @@ export async function GET(req: NextRequest) {
         args: listArgs,
       });
 
+      // Fetch avatars and emails for all donors
+      const itemsWithDetails = await Promise.all(
+        list.rows.map(async (donor: any) => {
+          const avatarResult = await db.execute({
+            sql: "SELECT avatar_data, mime_type FROM donor_avatars WHERE donor_id = ? ORDER BY created_at DESC LIMIT 1",
+            args: [donor.id]
+          });
+          const emailResult = await db.execute({
+            sql: "SELECT email FROM donor_emails WHERE donor_id = ? ORDER BY created_at DESC LIMIT 1",
+            args: [donor.id]
+          });
+          
+          return {
+            ...donor,
+            avatar_data: avatarResult.rows[0]?.avatar_data,
+            avatar_mime_type: avatarResult.rows[0]?.mime_type,
+            email: emailResult.rows[0]?.email,
+          };
+        })
+      );
+
       const count = await db.execute({
         sql: `SELECT COUNT(*) as count FROM donors ${whereSql}`,
         args: args as any[],
@@ -65,7 +86,7 @@ export async function GET(req: NextRequest) {
       const total = Number((count.rows[0] as any)?.count ?? 0);
 
       return jsonSuccess({
-        items: list.rows,
+        items: itemsWithDetails,
         total,
         page,
         pageSize,
@@ -97,6 +118,16 @@ export async function POST(req: NextRequest) {
       throw new ApiError(400, "No data provided");
     }
 
+    // Extract avatar and email data
+    const avatarData = data.avatar_data as string | undefined;
+    const avatarMimeType = data.avatar_mime_type as string | undefined;
+    const email = data.email as string | undefined;
+    
+    // Remove from main data object
+    delete data.avatar_data;
+    delete data.avatar_mime_type;
+    delete data.email;
+
     // Get next ID from database
     const maxIdResult = await db.execute({
       sql: "SELECT MAX(CAST(id AS INTEGER)) as max_id FROM donors",
@@ -126,6 +157,24 @@ export async function POST(req: NextRequest) {
       sql: `INSERT INTO donors (${keys.join(", ")}) VALUES (${placeholders})`,
       args: values,
     });
+
+    const donorId = Number(data.id);
+    
+    // Insert avatar if provided
+    if (avatarData && avatarMimeType) {
+      await db.execute({
+        sql: "INSERT INTO donor_avatars (donor_id, avatar_data, mime_type) VALUES (?, ?, ?)",
+        args: [donorId, avatarData, avatarMimeType]
+      });
+    }
+    
+    // Insert email if provided
+    if (email) {
+      await db.execute({
+        sql: "INSERT INTO donor_emails (donor_id, email) VALUES (?, ?)",
+        args: [donorId, email]
+      });
+    }
 
     const createdId = String(data.id);
     const created = await db.execute({
