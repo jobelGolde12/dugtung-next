@@ -52,7 +52,8 @@ export function requireAuth(req: NextRequest): AuthUser {
 export function requireRole(req: NextRequest, roles: Role[]) {
   const user = requireAuth(req);
   if (!roles.includes(user.role)) {
-    throw new ApiError(403, "Forbidden");
+    console.log("Role check failed:", { userRole: user.role, allowedRoles: roles });
+    throw new ApiError(403, `Forbidden: role '${user.role}' not in allowed roles`);
   }
   return user;
 }

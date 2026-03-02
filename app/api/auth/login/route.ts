@@ -49,7 +49,7 @@ export async function POST(req: Request) {
           throw new ApiError(401, "Invalid credentials");
         }
 
-        const role = normalizeRole(user.role);
+        const role = normalizeRole(user.role ?? "donor");
         const token = signToken({ id: String(user.id), role });
 
         const { password_hash, ...safeUser } = user;
