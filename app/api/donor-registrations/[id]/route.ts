@@ -94,9 +94,10 @@ export async function PATCH(
         [id]
       );
       if (avatarResult.rows.length > 0) {
+        const row = avatarResult.rows[0] as any;
         await db.execute(
           "INSERT INTO donor_avatars (donor_id, avatar_data, mime_type) VALUES (?, ?, ?)",
-          [donorId, avatarResult.rows[0].avatar_data, avatarResult.rows[0].mime_type]
+          [donorId, row.avatar_data, row.mime_type]
         );
       }
       
@@ -106,9 +107,10 @@ export async function PATCH(
         [id]
       );
       if (emailResult.rows.length > 0) {
+        const row = emailResult.rows[0] as any;
         await db.execute(
           "INSERT INTO donor_emails (donor_id, email) VALUES (?, ?)",
-          [donorId, emailResult.rows[0].email]
+          [donorId, row.email]
         );
       }
     }
