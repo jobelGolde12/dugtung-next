@@ -101,9 +101,23 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireRole(req, ["admin", "hospital_staff"]);
+    // Allow admin, hospital_staff, or donors to delete their own profile
+    const auth = requireRole(req, ["admin", "hospital_staff", "donor"]);
     const resolvedParams = await params;
     const id = parseIdParam(resolvedParams);
+    
+    // If donor, only allow deleting their own profile
+    if (auth.role === 'donor') {
+      // Donors can only delete their own profile - the id should match their user id
+      const result = await db.execute({
+        sql: "SELECT * FROM donors WHERE id = ? AND is_deleted = 0",
+        args: [id],
+      });
+      
+      if (result.rows.length === 0) {
+        throw new ApiError(404, "Donor not found");
+      }
+    }
 
     await db.execute({
       sql: "UPDATE donors SET is_deleted = 1 WHERE id = ?",

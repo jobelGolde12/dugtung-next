@@ -14,9 +14,24 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireRole(req, ["admin", "hospital_staff", "health_officer"]);
+    // Allow admin, hospital_staff, health_officer, or donors to update their own availability
+    const auth = requireRole(req, ["admin", "hospital_staff", "health_officer", "donor"]);
     const resolvedParams = await params;
     const id = parseIdParam(resolvedParams);
+    
+    // If donor, only allow updating their own profile
+    if (auth.role === 'donor') {
+      // Donors can only update their own profile - check by matching id
+      const result = await db.execute({
+        sql: "SELECT * FROM donors WHERE id = ? AND is_deleted = 0",
+        args: [id],
+      });
+      
+      if (result.rows.length === 0) {
+        throw new ApiError(404, "Donor not found");
+      }
+    }
+    
     const body = availabilitySchema.parse(await req.json());
 
     await db.execute({

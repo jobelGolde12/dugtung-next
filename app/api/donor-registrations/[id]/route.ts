@@ -85,6 +85,32 @@ export async function PATCH(
       const placeholders = keys.map(() => "?").join(", ");
       const values = keys.map((key) => donorPayload[key]) as any[];
       await db.execute(`INSERT INTO donors (${keys.join(", ")}) VALUES (${placeholders})`, values);
+      
+      const donorId = donorPayload.id;
+      
+      // Copy avatar from donor_registration_avatars to donor_avatars
+      const avatarResult = await db.execute(
+        "SELECT avatar_data, mime_type FROM donor_registration_avatars WHERE registration_id = ? ORDER BY created_at DESC LIMIT 1",
+        [id]
+      );
+      if (avatarResult.rows.length > 0) {
+        await db.execute(
+          "INSERT INTO donor_avatars (donor_id, avatar_data, mime_type) VALUES (?, ?, ?)",
+          [donorId, avatarResult.rows[0].avatar_data, avatarResult.rows[0].mime_type]
+        );
+      }
+      
+      // Copy email from donor_registration_emails to donor_emails
+      const emailResult = await db.execute(
+        "SELECT email FROM donor_registration_emails WHERE registration_id = ? ORDER BY created_at DESC LIMIT 1",
+        [id]
+      );
+      if (emailResult.rows.length > 0) {
+        await db.execute(
+          "INSERT INTO donor_emails (donor_id, email) VALUES (?, ?)",
+          [donorId, emailResult.rows[0].email]
+        );
+      }
     }
 
     const updated = await db.execute("SELECT * FROM donor_registrations WHERE id = ?", [id]);
