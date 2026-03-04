@@ -93,38 +93,45 @@ export async function PATCH(
         donorPayload.is_deleted = 0;
       }
 
-      const keys = Object.keys(donorPayload);
-      const placeholders = keys.map(() => "?").join(", ");
-      const values = keys.map((key) => donorPayload[key]) as any[];
-      await db.execute(`INSERT INTO donors (${keys.join(", ")}) VALUES (${placeholders})`, values);
-      
-      const donorIdResult = await db.execute("SELECT last_insert_rowid() as id");
-      const donorId = donorIdResult.rows[0] as any;
-      
-      // Copy avatar from donor_registration_avatars to donor_avatars
-      const avatarResult = await db.execute(
-        "SELECT avatar_data, mime_type FROM donor_registration_avatars WHERE registration_id = ? ORDER BY created_at DESC LIMIT 1",
-        [id]
-      );
-      if (avatarResult.rows.length > 0) {
-        const row = avatarResult.rows[0] as any;
-        await db.execute(
-          "INSERT INTO donor_avatars (donor_id, avatar_data, mime_type) VALUES (?, ?, ?)",
-          [donorId.id, row.avatar_data, row.mime_type]
+      try {
+        const keys = Object.keys(donorPayload);
+        const placeholders = keys.map(() => "?").join(", ");
+        const values = keys.map((key) => donorPayload[key]) as any[];
+        console.log("Inserting into donors:", { keys, values });
+        await db.execute(`INSERT INTO donors (${keys.join(", ")}) VALUES (${placeholders})`, values);
+        
+        const donorIdResult = await db.execute("SELECT last_insert_rowid() as id");
+        const donorId = donorIdResult.rows[0] as any;
+        console.log("Donor created with ID:", donorId.id);
+        
+        // Copy avatar from donor_registration_avatars to donor_avatars
+        const avatarResult = await db.execute(
+          "SELECT avatar_data, mime_type FROM donor_registration_avatars WHERE registration_id = ? ORDER BY created_at DESC LIMIT 1",
+          [id]
         );
-      }
-      
-      // Copy email from donor_registration_emails to donor_emails
-      const emailResult = await db.execute(
-        "SELECT email FROM donor_registration_emails WHERE registration_id = ? ORDER BY created_at DESC LIMIT 1",
-        [id]
-      );
-      if (emailResult.rows.length > 0) {
-        const row = emailResult.rows[0] as any;
-        await db.execute(
-          "INSERT INTO donor_emails (donor_id, email) VALUES (?, ?)",
-          [donorId.id, row.email]
+        if (avatarResult.rows.length > 0) {
+          const row = avatarResult.rows[0] as any;
+          await db.execute(
+            "INSERT INTO donor_avatars (donor_id, avatar_data, mime_type) VALUES (?, ?, ?)",
+            [donorId.id, row.avatar_data, row.mime_type]
+          );
+        }
+        
+        // Copy email from donor_registration_emails to donor_emails
+        const emailResult = await db.execute(
+          "SELECT email FROM donor_registration_emails WHERE registration_id = ? ORDER BY created_at DESC LIMIT 1",
+          [id]
         );
+        if (emailResult.rows.length > 0) {
+          const row = emailResult.rows[0] as any;
+          await db.execute(
+            "INSERT INTO donor_emails (donor_id, email) VALUES (?, ?)",
+            [donorId.id, row.email]
+          );
+        }
+      } catch (donorError) {
+        console.error("Error creating donor:", donorError);
+        throw donorError;
       }
     }
 
@@ -136,6 +143,7 @@ export async function PATCH(
 
     return jsonSuccess(updated.rows[0]);
   } catch (error) {
+    console.error("Error in PATCH /donor-registrations/[id]:", error);
     return handleApiError(error);
   }
 }
