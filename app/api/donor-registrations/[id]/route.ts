@@ -1,4 +1,3 @@
-import { randomUUID } from "crypto";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/turso";
@@ -39,7 +38,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireRole(req, ["admin", "hospital_staff"]);
+    const user = requireRole(req, ["admin", "hospital_staff"]);
     const resolvedParams = await params;
     const id = parseIdParam(resolvedParams);
     const body = updateSchema.parse(await req.json());
@@ -48,6 +47,8 @@ export async function PATCH(
       const updateData = { ...(body.data ?? {}) } as Record<string, unknown>;
       if (body.status) {
         updateData.status = body.status;
+        updateData.reviewed_at = new Date().toISOString();
+        updateData.reviewed_by = parseInt(user.id, 10);
       }
       updateData.updated_at = new Date().toISOString();
 
@@ -69,24 +70,36 @@ export async function PATCH(
         if (!reg) {
           throw new ApiError(404, "Registration not found");
         }
-        const { id: _, status, created_at, updated_at, ...rest } = reg;
-        donorPayload = rest;
+        
+        // Map donor_registrations columns to donors columns
+        donorPayload = {
+          full_name: reg.full_name,
+          age: reg.age,
+          sex: reg.sex,
+          blood_type: reg.blood_type,
+          contact_number: reg.contact_number,
+          municipality: reg.municipality,
+          availability_status: reg.availability,
+          last_donation_date: null,
+          notes: null,
+          created_at: new Date().toISOString(),
+          is_deleted: 0,
+          avatar_url: reg.avatar_url,
+          email: reg.email,
+        };
       }
 
-      if (!donorPayload.id) {
-        donorPayload.id = randomUUID();
-      }
       if (donorPayload.is_deleted === undefined) {
         donorPayload.is_deleted = 0;
       }
 
-      Object.keys(donorPayload).forEach(assertSafeIdentifier);
       const keys = Object.keys(donorPayload);
       const placeholders = keys.map(() => "?").join(", ");
       const values = keys.map((key) => donorPayload[key]) as any[];
       await db.execute(`INSERT INTO donors (${keys.join(", ")}) VALUES (${placeholders})`, values);
       
-      const donorId = donorPayload.id;
+      const donorIdResult = await db.execute("SELECT last_insert_rowid() as id");
+      const donorId = donorIdResult.rows[0] as any;
       
       // Copy avatar from donor_registration_avatars to donor_avatars
       const avatarResult = await db.execute(
@@ -97,7 +110,7 @@ export async function PATCH(
         const row = avatarResult.rows[0] as any;
         await db.execute(
           "INSERT INTO donor_avatars (donor_id, avatar_data, mime_type) VALUES (?, ?, ?)",
-          [donorId, row.avatar_data, row.mime_type]
+          [donorId.id, row.avatar_data, row.mime_type]
         );
       }
       
@@ -110,7 +123,7 @@ export async function PATCH(
         const row = emailResult.rows[0] as any;
         await db.execute(
           "INSERT INTO donor_emails (donor_id, email) VALUES (?, ?)",
-          [donorId, row.email]
+          [donorId.id, row.email]
         );
       }
     }
