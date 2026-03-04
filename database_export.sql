@@ -112,6 +112,7 @@ CREATE TABLE IF NOT EXISTS donor_registrations (
   municipality TEXT NOT NULL,
   availability TEXT NOT NULL DEFAULT 'Available',
   status TEXT NOT NULL DEFAULT 'pending',
+  accepted_privacy_policy INTEGER DEFAULT 0,
   review_reason TEXT,
   reviewed_by INTEGER,
   reviewed_at TEXT,
